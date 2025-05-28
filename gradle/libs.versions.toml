@@ -4,7 +4,6 @@ kotlin = "2.4.21"
 ksp = "2.3.13"
 gradleVersions = "0.67.0"
 gms = "4.5.0"
-gradleCrashlytics = "3.0.8"
 sqldelight = "2.4.1"
 coreKtx = "1.19.1"
 kotlinCoroutines = "1.11.0"
@@ -22,13 +21,10 @@ drawerlayout = "1.2.0"
 documentfile = "1.1.0"
 pagingRuntime = "3.5.3"
 constraintlayout = "2.2.2"
-userMessagingPlatform = "4.0.0"
 activity = "1.13.0"
 androidxLifecycle = "2.11.0"
 fragmentKtx = "1.9.1"
 # 23.0.0 to 23.2.0 breaks the apk for some reason (too small, fails to read android-manifest)
-playServicesAds = "25.5.0"
-firebaseBom = "35.1.0"
 okhttpBom = "5.5.1"
 retrofit = "3.0.0"
 picasso = "2.8"
@@ -62,15 +58,10 @@ androidx-drawerlayout = { group = "androidx.drawerlayout", name = "drawerlayout"
 androidx-documentfile = { group = "androidx.documentfile", name = "documentfile", version.ref = "documentfile" }
 androidx-paging-runtime = { group = "androidx.paging", name = "paging-runtime", version.ref = "pagingRuntime" }
 androidx-constraintlayout = { group = "androidx.constraintlayout", name = "constraintlayout", version.ref = "constraintlayout" }
-user-messaging-platform = { group = "com.google.android.ump", name = "user-messaging-platform", version.ref = "userMessagingPlatform" }
 androidx-activity-ktx = { group = "androidx.activity", name = "activity-ktx", version.ref = "activity" }
 androidx-lifecycle-runtime-ktx = { group = "androidx.lifecycle", name = "lifecycle-runtime-ktx", version.ref = "androidxLifecycle" }
 androidx-lifecycle-livedata-ktx = { group = "androidx.lifecycle", name = "lifecycle-livedata-ktx", version.ref = "androidxLifecycle" }
 androidx-fragment-ktx = { group = "androidx.fragment", name = "fragment-ktx", version.ref = "fragmentKtx" }
-play-services-ads = { group = "com.google.android.gms", name = "play-services-ads", version.ref = "playServicesAds" }
-firebase-bom = { group = "com.google.firebase", name = "firebase-bom", version.ref = "firebaseBom" }
-firebase-analytics = { group = "com.google.firebase", name = "firebase-analytics" }
-firebase-crashlytics = { group = "com.google.firebase", name = "firebase-crashlytics" }
 okhttp-bom = { group = "com.squareup.okhttp3", name = "okhttp-bom", version.ref = "okhttpBom" }
 okhttp-core = { group = "com.squareup.okhttp3", name = "okhttp" }
 okhttp-dnsoverhttps = { group = "com.squareup.okhttp3", name = "okhttp-dnsoverhttps" }
@@ -100,6 +91,4 @@ android-library = { id = "com.android.library", version.ref = "agp" }
 kotlin-android = { id = "org.jetbrains.kotlin.android", version.ref = "kotlin" }
 google-ksp = { id = "com.google.devtools.ksp", version.ref = "ksp" }
 gradle-versions = { id = "io.github.ben-manes.versions", version.ref = "gradleVersions" }
-google-services = { id = "com.google.gms.google-services", version.ref = "gms" }
-firebase-crashlytics = { id = "com.google.firebase.crashlytics", version.ref = "gradleCrashlytics" }
 sqldelight = { id = "app.cash.sqldelight", version.ref = "sqldelight" }

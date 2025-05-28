@@ -59,10 +59,8 @@ import com.pr0gramm.app.ui.GridSpacingItemDecoration
 import com.pr0gramm.app.ui.FancyExifThumbnailGenerator
 import com.pr0gramm.app.ui.FeedFilterFormatter
 import com.pr0gramm.app.ui.FilterFragment
-import com.pr0gramm.app.ui.InterstitialAdler
 import com.pr0gramm.app.ui.LoginActivity
 import com.pr0gramm.app.ui.MainActionHandler
-import com.pr0gramm.app.ui.MainActivity
 import com.pr0gramm.app.ui.PreviewInfo
 import com.pr0gramm.app.ui.RecyclerItemClickListener
 import com.pr0gramm.app.ui.ScrollHideToolbarListener
@@ -80,7 +78,6 @@ import com.pr0gramm.app.ui.base.launchUntilViewDestroy
 import com.pr0gramm.app.ui.base.launchWhenCreated
 import com.pr0gramm.app.ui.base.withErrorDialog
 import com.pr0gramm.app.ui.configureNewStyle
-import com.pr0gramm.app.ui.configureRecyclerView
 import com.pr0gramm.app.ui.dialogs.PopupPlayer
 import com.pr0gramm.app.ui.fragments.CommentRef
 import com.pr0gramm.app.ui.fragments.ItemUserAdminDialog
@@ -139,7 +136,6 @@ class FeedFragment : BaseFragment("FeedFragment", R.layout.fragment_feed), Filte
                 seenService = instance(),
                 inMemoryCacheService = instance(),
                 preloadManager = instance(),
-                adService = instance(),
                 itemQueries = instance<AppDB>().feedItemInfoQueries,
         )
     }
@@ -179,8 +175,6 @@ class FeedFragment : BaseFragment("FeedFragment", R.layout.fragment_feed), Filte
 
     private var lastCheckForNewItemsTime = Instant(0)
 
-    private lateinit var interstitialAdler: InterstitialAdler
-
     private lateinit var feedAdapter: FeedAdapter
 
     private val scrollToolbar: Boolean
@@ -203,8 +197,6 @@ class FeedFragment : BaseFragment("FeedFragment", R.layout.fragment_feed), Filte
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        interstitialAdler = InterstitialAdler(requireActivity())
-
         scrollTargetKey = savedInstanceState?.getString("scrollTargetKey") ?: UUID.randomUUID().toString()
     }
 
@@ -234,7 +226,7 @@ class FeedFragment : BaseFragment("FeedFragment", R.layout.fragment_feed), Filte
 
         val abHeight = AndroidUtility.getActionBarContentOffset(activity)
 
-        feedAdapter = FeedAdapter((activity as MainActivity).adViewAdapter)
+        feedAdapter = FeedAdapter()
 
         if (!feedStateModel.feedState.value.ready) {
             feedAdapter.stateRestorationPolicy = StateRestorationPolicy.PREVENT
@@ -458,11 +450,6 @@ class FeedFragment : BaseFragment("FeedFragment", R.layout.fragment_feed), Filte
                     userState.ownUsername != null && userState.ownUsername.equalsIgnoreCase(filter.username)
                 }
 
-                // always show at least one ad banner - e.g. during load
-                if (feedState.adsVisible && feedState.feed.isEmpty()) {
-                    entries += FeedAdapter.Entry.Ad(0)
-                }
-
                 var itemColumnIndex = 0
 
                 for (item in feedState.feed) {
@@ -470,11 +457,6 @@ class FeedFragment : BaseFragment("FeedFragment", R.layout.fragment_feed), Filte
                     val seen = markAsSeen && id in feedState.seen
                     val repost = inMemoryCacheService.isRepost(id)
                     val preloaded = id in feedState.preloadedItemIds
-
-                    // show an ad banner every ~50 lines
-                    if (feedState.adsVisible && (itemColumnIndex % (50 * thumbnailColumnCount)) == 0) {
-                        entries += FeedAdapter.Entry.Ad(itemColumnIndex.toLong())
-                    }
 
                     val highlight = thumbnailColumnCount <= 3
                             && Settings.highlightItemsInFeed
@@ -694,7 +676,12 @@ class FeedFragment : BaseFragment("FeedFragment", R.layout.fragment_feed), Filte
             autoScrollRef = ref.copy(feed = null)
 
             // apply the updated feed reference
-            feedStateModel.replaceCurrentFeed(feed.mergeIfPossible(ref.feed) ?: ref.feed)
+            feedStateModel.replaceCurrentFeed(
+                feed.mergeIfPossible(
+                    ref.feed,
+                    feedStateModel.seenService
+                ) ?: ref.feed
+            )
         }
     }
 
@@ -1131,10 +1118,7 @@ class FeedFragment : BaseFragment("FeedFragment", R.layout.fragment_feed), Filte
                     logger.warn { "User clicked on a placeholder: ${holder.item.id}" }
                     return@let
                 }
-
-                interstitialAdler.runWithAd {
-                    onItemClicked(holder.item, preview = holder.imageView)
-                }
+                onItemClicked(holder.item, preview = holder.imageView)
             }
         }
 

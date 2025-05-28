@@ -16,4 +16,5 @@ enum class FeedType(val searchable: Boolean = true,
     RANDOM(preloadable = false, sortable = false),
     BESTOF,
     JUNK,
+    BLUSSI,
 }

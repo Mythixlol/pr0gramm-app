@@ -139,7 +139,6 @@ class PreloadService : Service(), LazyInjectorAware {
             }
 
         } catch (error: Throwable) {
-            AndroidUtility.logToCrashlytics(error)
             notification.setContentTitle(getString(R.string.preload_failed))
 
         } finally {

@@ -51,7 +51,6 @@ import com.pr0gramm.app.services.UserService
 import com.pr0gramm.app.services.VoteService
 import com.pr0gramm.app.services.config.ConfigService
 import com.pr0gramm.app.time
-import com.pr0gramm.app.ui.InterstitialAdler
 import com.pr0gramm.app.ui.LoginActivity
 import com.pr0gramm.app.ui.MainActivity
 import com.pr0gramm.app.ui.PreviewInfo
@@ -173,7 +172,6 @@ class PostFragment : BaseFragment("PostFragment"), NewTagDialogFragment.OnAddNew
     private val downloadService: DownloadService by instance()
     private val configService: ConfigService by instance()
     private val shareService: ShareService by instance()
-    private val interstitialAdler by lazy { InterstitialAdler(requireActivity()) }
 
     private val views by bindViews(FragmentPostBinding::bind)
 
@@ -1347,10 +1345,8 @@ class PostFragment : BaseFragment("PostFragment"), NewTagDialogFragment.OnAddNew
         }
 
         override fun onTagClicked(tag: Api.Tag) {
-            interstitialAdler.runWithAd {
-                val parent = parentFragment as PostPagerFragment
-                parent.onTagClicked(tag)
-            }
+            val parent = parentFragment as PostPagerFragment
+            parent.onTagClicked(tag)
         }
 
         override fun onUserClicked(username: String) {

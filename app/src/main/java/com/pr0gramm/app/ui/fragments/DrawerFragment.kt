@@ -91,13 +91,11 @@ class DrawerFragment : BaseFragment("DrawerFragment", R.layout.left_drawer) {
             val inboxService = instance<InboxService>()
             val configService = instance<ConfigService>()
             val singleShotService = instance<SingleShotService>()
-            val adService = instance<AdService>()
 
             logger.time("Create navigation provider") {
                 NavigationProvider(
                     requireActivity(), userService, inboxService,
-                    bookmarkService, configService, singleShotService, adService,
-                    picasso,
+                    bookmarkService, configService, singleShotService, picasso,
                 )
             }
         }
@@ -529,7 +527,7 @@ private class TitleDelegateAdapter(private val callbacks: DrawerFragment.Callbac
 
             holder.subtitle.isVisible = false
         } else {
-            holder.title.text = value.name
+            holder.title.setText(R.string.pr0gramm)
             holder.title.setOnClickListener { callbacks.onUsernameClicked() }
 
             holder.subtitle.isVisible = true

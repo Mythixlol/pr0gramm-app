@@ -3,8 +3,6 @@ import java.io.ByteArrayOutputStream
 
 plugins {
     alias(libs.plugins.android.application)
-    alias(libs.plugins.google.services)
-    alias(libs.plugins.firebase.crashlytics)
 }
 
 apply(from = "version.gradle.kts")
@@ -156,7 +154,6 @@ dependencies {
     implementation(libs.androidx.documentfile)
     implementation(libs.androidx.paging.runtime)
     implementation(libs.androidx.constraintlayout)
-    implementation(libs.user.messaging.platform)
 
     implementation(libs.androidx.activity.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)
@@ -164,11 +161,7 @@ dependencies {
 
     implementation(libs.androidx.fragment.ktx)
 
-    implementation(libs.play.services.ads)
 
-    implementation(platform(libs.firebase.bom))
-    implementation(libs.firebase.analytics)
-    implementation(libs.firebase.crashlytics)
 
     implementation(libs.retrofit.core)
     implementation(libs.retrofit.converter.moshi)

@@ -5,7 +5,7 @@ import android.net.Uri
 import com.google.common.io.Closer
 import com.pr0gramm.app.Instant
 import com.pr0gramm.app.Logger
-import com.pr0gramm.app.util.AndroidUtility.logToCrashlytics
+import com.pr0gramm.app.util.*
 import com.pr0gramm.app.util.CountingInputStream
 import com.pr0gramm.app.util.closeQuietly
 import com.pr0gramm.app.util.doInBackground
@@ -125,15 +125,6 @@ internal class CacheEntry(
             fp.seek(pos.toLong())
             val byteCount = read(fp, data, offset, amountToRead)
 
-            // check if we got as many bytes as we wanted to.
-            if (byteCount != amountToRead) {
-                logToCrashlytics(
-                    EOFException(
-                        "Expected to read $amountToRead bytes at $pos, but got only $byteCount. Cache entry: $this"
-                    )
-                )
-            }
-
             return byteCount
         }
     }
@@ -233,9 +224,6 @@ internal class CacheEntry(
             state.totalSizeValue = awaitTotalSize(state)
 
             if (state.written > state.totalSizeValue) {
-                // okay, someone fucked up! :/
-                logToCrashlytics(IOException("written=${state.written} greater than totalSize=${state.totalSizeValue}"))
-
                 // invalidate the file and try again.
                 fp.setLength(0)
                 fp.close()
