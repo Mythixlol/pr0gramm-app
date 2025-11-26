@@ -76,6 +76,7 @@ class NavigationProvider(
     private val iconLogin by drawable(R.drawable.ic_action_login)
     private val iconLogout by drawable(R.drawable.ic_action_logout)
     private val iconFeedTypeJunk by drawable(R.drawable.ic_action_bin)
+    private val iconFeedTypeBlussi by drawable(R.drawable.ic_plus)
 
     // set value to true to trigger a refresh of the flow once.
     private val refreshAfterNavItemWasDeletedStateFlow = MutableStateFlow(false)
@@ -195,6 +196,12 @@ class NavigationProvider(
             title = getString(R.string.action_feed_type_bestof),
             icon = iconFeedTypeBestOf,
             filter = FeedFilter().withFeedType(FeedType.BESTOF)
+        )
+
+        items += makeItem(
+            title = getString(R.string.action_feed_type_bluss),
+            icon = iconFeedTypeBlussi,
+            filter = FeedFilter().withFeedType(FeedType.BLUSSI)
         )
 
         if(Settings.showCategoryJunk) {

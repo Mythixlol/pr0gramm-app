@@ -6,4 +6,8 @@ Dies ist eine angepasste Version der pr0gramm-App ohne die Analysetools von Goog
 [Download](https://github.com/LageTs/Pr0/raw/beta/release.apk)
 
 ## Build
-Um die App zu bauen ist lediglich ein 'gradle assembleRelease' nötig, vorher muss jedoch ein passender Key erstellt werden..
+Um die App zu bauen ist lediglich ein 'gradle assembleRelease' nötig, vorher muss jedoch ein passender Key erstellt werden.
+
+## Änderungen
+- Hide seen mode
+- Filter für Posts im Minus

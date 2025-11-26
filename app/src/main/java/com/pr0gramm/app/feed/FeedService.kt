@@ -6,6 +6,7 @@ import com.pr0gramm.app.Settings
 import com.pr0gramm.app.TimeFactory
 import com.pr0gramm.app.api.pr0gramm.Api
 import com.pr0gramm.app.db.FeedItemInfoQueries
+import com.pr0gramm.app.services.SeenService
 import com.pr0gramm.app.services.UserService
 import com.pr0gramm.app.time
 import com.pr0gramm.app.ui.base.AsyncScope
@@ -47,12 +48,15 @@ interface FeedService {
         val newer: Long? = null, val older: Long? = null, val around: Long? = null
     )
 
+    fun getSeenService(): SeenService
+
 }
 
 class FeedServiceImpl(
     private val api: Api,
     private val userService: UserService,
-    private val itemQueries: FeedItemInfoQueries
+    private val itemQueries: FeedItemInfoQueries,
+    private val seenService: SeenService
 ) : FeedService {
     private val logger = Logger("FeedService")
 
@@ -62,6 +66,7 @@ class FeedServiceImpl(
         // filter by feed-type
         val promoted = if (feedFilter.feedType === FeedType.PROMOTED) 1 else null
         val following = if (feedFilter.feedType === FeedType.STALK) 1 else null
+        val blussi = feedFilter.feedType === FeedType.BLUSSI
 
         val flags = ContentType.combine(query.contentTypes)
 
@@ -146,6 +151,7 @@ class FeedServiceImpl(
                     // in top & new we will fully hide junk
                     feedType == FeedType.NEW -> false
                     feedType == FeedType.PROMOTED -> false
+                    feedType == FeedType.BLUSSI -> false
 
                     // in all other cases just allow it
                     else -> null
@@ -158,10 +164,20 @@ class FeedServiceImpl(
                     showJunk = showJunk
                 )
 
+                val feed: Api.Feed = if (blussi) {
+                    Api.Feed(
+                        _items = result._items?.filter { it.down <= it.up },
+                        isAtStart = result.isAtStart,
+                        isAtEnd = result.isAtEnd
+                    )
+                } else {
+                    result
+                }
+
                 result.also {
                     AsyncScope.launchIgnoreErrors {
                         logger.time("Cache items from result") {
-                            cacheItems(result)
+                            cacheItems(feed)
                         }
                     }
                 }
@@ -241,5 +257,9 @@ class FeedServiceImpl(
                 }
             }
         }
+    }
+
+    override fun getSeenService(): SeenService {
+        return seenService
     }
 }

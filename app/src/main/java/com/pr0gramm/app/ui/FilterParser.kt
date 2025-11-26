@@ -40,6 +40,10 @@ object FilterParser {
                 filter = filter.withFeedType(FeedType.JUNK)
             }
 
+            if (values["type"] == "bluss") {
+                filter = filter.withFeedType(FeedType.BLUSSI)
+            }
+
             val tag = values["tag"]
             val user = values["user"]
 
