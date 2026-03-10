@@ -408,6 +408,12 @@
             android:title="@string/pref_pseudo_changelog" />
 
         <Preference
+            android:icon="@drawable/ic_action_add_tag"
+            android:key="pref_custom_default_tags"
+            android:summary="Default Tags"
+            android:title="Standard Tags für eigenen Feed" />
+
+        <Preference
             android:icon="@drawable/ic_settings_cleanup"
             android:key="pref_pseudo_clean_preloaded"
             android:persistent="false"

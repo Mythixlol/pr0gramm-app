@@ -172,24 +172,52 @@ class NavigationProvider(
     /**
      * Adds the default "fixed" items to the menu
      */
-    private fun categoryNavigationItems(selection: FeedFilter?, username: String?): List<NavigationItem> {
-        fun makeItem(title: String, icon: Drawable, filter: FeedFilter, action: ActionType = ActionType.FILTER) =
+    private fun categoryNavigationItems(
+        selection: FeedFilter?,
+        username: String?
+    ): List<NavigationItem> {
+        fun makeItem(
+            title: String,
+            icon: Drawable,
+            filter: FeedFilter,
+            action: ActionType = ActionType.FILTER
+        ) =
             NavigationItem(
-                action = action, title = title, icon = icon, filter = filter, isSelected = filter == selection
+                action = action,
+                title = title,
+                icon = icon,
+                filter = filter,
+                isSelected = filter == selection
             )
 
         val items = mutableListOf<NavigationItem>()
 
+        username?.let {
+            items += makeItem(
+                title = "geiler $it shit",
+                icon = iconFeedTypeNew,
+                filter = FeedFilter().withFeedType(FeedType.NEW).withTagsNoReset(Settings.customDefaultTags)
+            )
+        }
+
         items += makeItem(
-            title = getString(R.string.action_feed_type_promoted),
-            icon = iconFeedTypePromoted,
-            filter = FeedFilter().withFeedType(FeedType.PROMOTED)
+            title = "Pr0n",
+            icon = iconFeedTypeBestOf,
+            filter = FeedFilter().withFeedType(FeedType.NEW)
+                .withTagsNoReset("! nsfw  webm -schwul -nsfl -trap -gay -wichteln -Ricardo Milos -bisschen Mod")
         )
+
 
         items += makeItem(
             title = getString(R.string.action_feed_type_new),
             icon = iconFeedTypeNew,
             filter = FeedFilter().withFeedType(FeedType.NEW)
+        )
+
+        items += makeItem(
+            title = getString(R.string.action_feed_type_promoted),
+            icon = iconFeedTypePromoted,
+            filter = FeedFilter().withFeedType(FeedType.PROMOTED)
         )
 
         items += makeItem(
@@ -204,7 +232,7 @@ class NavigationProvider(
             filter = FeedFilter().withFeedType(FeedType.BLUSSI)
         )
 
-        if(Settings.showCategoryJunk) {
+        if (Settings.showCategoryJunk) {
             items += makeItem(
                 title = getString(R.string.action_feed_type_junk),
                 icon = iconFeedTypeJunk,
@@ -263,7 +291,10 @@ class NavigationProvider(
         )
     }
 
-    private fun bookmarksToNavItem(currentSelection: FeedFilter?, bookmarks: List<Bookmark>): List<NavigationItem> {
+    private fun bookmarksToNavItem(
+        currentSelection: FeedFilter?,
+        bookmarks: List<Bookmark>
+    ): List<NavigationItem> {
         val items = bookmarks.mapTo(mutableListOf()) { entry ->
 
             val filter = entry.asFeedFilter()
@@ -404,7 +435,10 @@ class NavigationProvider(
         return context.getString(id)
     }
 
-    private fun remoteConfigItems(loginState: LoginState, upper: Boolean): Flow<List<NavigationItem>> {
+    private fun remoteConfigItems(
+        loginState: LoginState,
+        upper: Boolean
+    ): Flow<List<NavigationItem>> {
         return configService.observeConfig()
             .map { config -> config.specialMenuItems }
             .distinctUntilChanged()
@@ -488,9 +522,23 @@ class NavigationProvider(
     }
 
     enum class ActionType {
-        HINT, FILTER, BOOKMARK, MESSAGES, UPLOAD, COLLECTIONS, URI,
+        HINT,
+        FILTER,
+        BOOKMARK,
+        MESSAGES,
+        UPLOAD,
+        COLLECTIONS,
+        URI,
         DIVIDER,
-        SETTINGS, CONTACT, INVITES, FAQ, PRIVACY, IMPRINT, PREMIUM, LOGIN, LOGOUT,
+        SETTINGS,
+        CONTACT,
+        INVITES,
+        FAQ,
+        PRIVACY,
+        IMPRINT,
+        PREMIUM,
+        LOGIN,
+        LOGOUT,
         AGE_VERIFICATION,
     }
 }

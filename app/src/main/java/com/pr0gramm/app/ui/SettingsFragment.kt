@@ -159,6 +159,12 @@ class SettingsFragment : BasePreferenceFragment("SettingsFragment"),
                 return true
             }
 
+            "pref_custom_default_tags" -> {
+                CustomDefaultTagDialog()
+                    .show(requireActivity().supportFragmentManager, "CustomDefaultTagDialog")
+                return true
+            }
+
             "pref_pseudo_recommend" -> {
                 val text = "Probiere mal die offizielle pr0gramm App aus: https://app.pr0gramm.com/"
                 val intent = Intent(Intent.ACTION_SEND)

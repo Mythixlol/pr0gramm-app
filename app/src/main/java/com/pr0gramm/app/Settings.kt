@@ -46,7 +46,8 @@ object Settings : SharedPreferences.OnSharedPreferenceChangeListener {
      */
     val contentType: EnumSet<ContentType>
         get() {
-            val result = EnumSet.of(ContentType.SFW, ContentType.NSFW, ContentType.NSFL, ContentType.POL)
+            val result =
+                EnumSet.of(ContentType.SFW, ContentType.NSFW, ContentType.NSFL, ContentType.POL)
 
             if (!contentTypeNsfl) {
                 result.remove(ContentType.NSFL)
@@ -83,6 +84,10 @@ object Settings : SharedPreferences.OnSharedPreferenceChangeListener {
     var markItemsAsSeen: Boolean
         get() = preferences.getBoolean("pref_mark_items_as_seen", false)
         set(value) = edit { putBoolean("pref_mark_items_as_seen", value) }
+
+    var customDefaultTags: String?
+        get() = preferences.getString("pref_custom_default_tags", "")
+        set(value) = edit { putString("pref_custom_default_tags", value) }
 
     var removeSeenItems: Boolean
         get() = preferences.getBoolean("pref_remove_seen_items", false)
