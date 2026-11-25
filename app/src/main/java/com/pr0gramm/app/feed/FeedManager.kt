@@ -5,6 +5,7 @@ import com.pr0gramm.app.Settings.removeSeenItems
 import com.pr0gramm.app.api.pr0gramm.Api
 import com.pr0gramm.app.util.trace
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.Flow
@@ -106,16 +107,14 @@ class FeedManager(
 
         job = scope.launch {
             try {
-                val update = try {
-                    block()
-                } catch (_: CancellationException) {
-                    return@launch
-                }
+                val update = block()
 
                 // loading finished
                 publish(Update.LoadingStopped)
                 handleFeedUpdate(update, callee)
 
+            } catch (err: CancellationException) {
+                throw err
             } catch (err: Throwable) {
                 publish(Update.LoadingStopped)
                 publishError(err)
@@ -123,7 +122,7 @@ class FeedManager(
         }
     }
 
-    private fun handleFeedUpdate(update: Api.Feed, callee: Callee) {
+    private suspend fun handleFeedUpdate(update: Api.Feed, callee: Callee) {
         // check for invalid content type.
         update.error?.let { error ->
             publishError(when (error) {
@@ -146,21 +145,30 @@ class FeedManager(
     /**
      * Update and publish a new feed.
      */
-    private fun publish(newFeed: Feed, remote: Boolean, callee: Callee) {
-        val sizeBefore: Int = feed.size
+    private suspend fun publish(newFeed: Feed, remote: Boolean, callee: Callee) {
+        val previousFeed = feed
         feed = newFeed
-        if ((feed.feedType === FeedType.BLUSSI && (feed.size < 75 || feed.size - sizeBefore < 50)) || (removeSeenItems && feed.feedType == FeedType.RANDOM && (feed.size < 75 || feed.size - sizeBefore < 50))) {
-            overwriteLoading = true
-            Thread.sleep(1500)
-            when (callee) {
-                Callee.RESTART -> next()
-                Callee.NEXT -> next()
-                Callee.PREVIOUS -> previous()
-            }
+        publish(Update.NewFeed(newFeed, remote))
+
+        val filteredFeed = feedType == FeedType.BLUSSI ||
+                (removeSeenItems && feedType == FeedType.RANDOM)
+        val addedItems = newFeed.size - previousFeed.size
+        val cursorAdvanced = if (callee == Callee.PREVIOUS) {
+            newFeed.newestNonPlaceholderItem?.id != previousFeed.newestNonPlaceholderItem?.id
         } else {
-            if (removeSeenItems)
+            newFeed.oldestNonPlaceholderItem?.id != previousFeed.oldestNonPlaceholderItem?.id
+        }
+        if (filteredFeed && cursorAdvanced && (newFeed.size < 75 || addedItems < 50)) {
+            delay(1500)
+            overwriteLoading = true
+            try {
+                when (callee) {
+                    Callee.RESTART, Callee.NEXT -> next()
+                    Callee.PREVIOUS -> previous()
+                }
+            } finally {
                 overwriteLoading = false
-            publish(Update.NewFeed(newFeed, remote))
+            }
         }
     }
 

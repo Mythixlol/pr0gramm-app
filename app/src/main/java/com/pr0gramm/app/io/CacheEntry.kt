@@ -5,7 +5,6 @@ import android.net.Uri
 import com.google.common.io.Closer
 import com.pr0gramm.app.Instant
 import com.pr0gramm.app.Logger
-import com.pr0gramm.app.util.*
 import com.pr0gramm.app.util.CountingInputStream
 import com.pr0gramm.app.util.closeQuietly
 import com.pr0gramm.app.util.doInBackground
@@ -16,7 +15,6 @@ import kotlinx.coroutines.withContext
 import okhttp3.CacheControl
 import okhttp3.OkHttpClient
 import okhttp3.Request
-import java.io.EOFException
 import java.io.File
 import java.io.FileInputStream
 import java.io.FileNotFoundException

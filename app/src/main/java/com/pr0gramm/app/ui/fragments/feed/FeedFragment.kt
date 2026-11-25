@@ -63,6 +63,7 @@ import com.pr0gramm.app.ui.LoginActivity
 import com.pr0gramm.app.ui.MainActionHandler
 import com.pr0gramm.app.ui.PreviewInfo
 import com.pr0gramm.app.ui.RecyclerItemClickListener
+import com.pr0gramm.app.ui.RecyclerViewPoolProvider
 import com.pr0gramm.app.ui.ScrollHideToolbarListener
 import com.pr0gramm.app.ui.ScrollHideToolbarListener.ToolbarActivity
 import com.pr0gramm.app.ui.TitleFragment
@@ -78,6 +79,7 @@ import com.pr0gramm.app.ui.base.launchUntilViewDestroy
 import com.pr0gramm.app.ui.base.launchWhenCreated
 import com.pr0gramm.app.ui.base.withErrorDialog
 import com.pr0gramm.app.ui.configureNewStyle
+import com.pr0gramm.app.ui.configureRecyclerView
 import com.pr0gramm.app.ui.dialogs.PopupPlayer
 import com.pr0gramm.app.ui.fragments.CommentRef
 import com.pr0gramm.app.ui.fragments.ItemUserAdminDialog
@@ -258,7 +260,7 @@ class FeedFragment : BaseFragment("FeedFragment", R.layout.fragment_feed), Filte
             entry is FeedAdapter.Entry.Item || entry is FeedAdapter.Entry.PlaceholderItem
         })
 
-        activity.configureRecyclerView("Feed", views.recyclerView)
+        (activity as? RecyclerViewPoolProvider)?.configureRecyclerView("Feed", views.recyclerView)
 
         views.recyclerView.clipToPadding = false
         views.recyclerView.onSystemBarInsets { v, insets -> v.updatePadding(bottom = insets.bottom) }

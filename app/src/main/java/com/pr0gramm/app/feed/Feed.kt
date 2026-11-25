@@ -90,7 +90,7 @@ data class Feed(
             target.removeAll({item -> item.down > item.up})
 
         // set with ids of all real values
-        val realIds = target.filter { item -> !item.placeholder && !seenService.isSeen(item.id) }
+        val realIds = target.filter { item -> !item.placeholder }
             .mapTo(mutableSetOf()) { item -> item.id }
 
         // remove all placeholders from the target that also have real ids.

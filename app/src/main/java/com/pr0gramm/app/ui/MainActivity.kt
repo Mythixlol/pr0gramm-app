@@ -204,6 +204,60 @@ class MainActivity : BaseAppCompatActivity("MainActivity"),
                 invalidateRecyclerViewPool()
             }
         }
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            // TODO better move this into the onboarding activity?
+            askNotificationPermission()
+        }
+    }
+
+    @RequiresApi(Build.VERSION_CODES.TIRAMISU)
+    fun askNotificationPermission() {
+        // Register the permissions callback, which handles the user's response to the
+        // system permissions dialog. Save the return value, an instance of
+        // ActivityResultLauncher. You can use either a val, as shown in this snippet,
+        // or a lateinit var in your onAttach() or onCreate() method.
+        val requestPermissionLauncher =
+            registerForActivityResult(RequestPermission()) { isGranted: Boolean ->
+                if (isGranted) {
+                    // Permission is granted. Continue the action or workflow in your
+                    // app.
+                    logger.info { "Some permission was granted." }
+                } else {
+                    // Explain to the user that the feature is unavailable because the
+                    // feature requires a permission that the user has denied. At the
+                    // same time, respect the user's decision. Don't link to system
+                    // settings in an effort to convince the user to change their
+                    // decision.
+                    logger.info { "Some permission was not granted" }
+                }
+            }
+
+        when {
+            ContextCompat.checkSelfPermission(
+                this,
+                Manifest.permission.POST_NOTIFICATIONS
+            ) == PackageManager.PERMISSION_GRANTED -> {
+                logger.info { "We have notification permission" }
+                // You can use the API that requires the permission.
+            }
+
+            ActivityCompat.shouldShowRequestPermissionRationale(
+                this, Manifest.permission.POST_NOTIFICATIONS
+            ) -> {
+                requestPermissionLauncher.launch(
+                    Manifest.permission.POST_NOTIFICATIONS
+                )
+            }
+
+            else -> {
+                // You can directly ask for the permission.
+                // The registered ActivityResultCallback gets the result of this request.
+                requestPermissionLauncher.launch(
+                    Manifest.permission.POST_NOTIFICATIONS
+                )
+            }
+        }
     }
 
     private fun buildDrawerArrowDrawable(): DrawerArrowDrawable {

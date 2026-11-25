@@ -13,12 +13,9 @@ import com.pr0gramm.app.sync.SyncStatsWorker
 import com.pr0gramm.app.sync.SyncWorker
 import com.pr0gramm.app.ui.ActivityErrorHandler
 import com.pr0gramm.app.ui.dialogs.ErrorDialogFragment.Companion.GlobalErrorDialogHandler
-import com.pr0gramm.app.util.AndroidUtility
-import com.pr0gramm.app.util.ExceptionHandler
 import com.pr0gramm.app.util.debugOnly
 import com.pr0gramm.app.util.di.InjectorAware
 import com.pr0gramm.app.util.doInBackground
-import kotlinx.coroutines.runBlocking
 import java.util.WeakHashMap
 import java.util.concurrent.TimeUnit
 import java.util.logging.Level
@@ -121,10 +118,13 @@ private class CatchingActivityLifecycleCallbacks(
         private val callback: Application.ActivityLifecycleCallbacks)
     : Application.ActivityLifecycleCallbacks by callback {
 
+    private val logger = Logger("ActivityLifecycleCallbacks")
+
     override fun onActivityCreated(activity: Activity, savedInstanceState: Bundle?) {
         try {
             callback.onActivityCreated(activity, savedInstanceState)
         } catch (err: RuntimeException) {
+            logger.warn(err) { "ActivityLifecycleCallback failed" }
         }
     }
 }
