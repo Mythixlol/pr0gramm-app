@@ -3,9 +3,9 @@ package com.pr0gramm.app.io
 import android.annotation.SuppressLint
 import android.net.Uri
 import com.google.common.io.Closer
-import com.pr0gramm.app.Instant
 import com.pr0gramm.app.Logger
 import com.pr0gramm.app.util.CountingInputStream
+import com.pr0gramm.app.util.VideoBenchmark
 import com.pr0gramm.app.util.closeQuietly
 import com.pr0gramm.app.util.doInBackground
 import com.pr0gramm.app.util.readStream
@@ -482,6 +482,7 @@ internal class CacheEntry(
     @SuppressLint("RestrictedApi")
     private inner class Worker {
         private val logger = Logger("${this@CacheEntry.logger}.Worker")
+        private val timing = VideoBenchmark.forCache(uri)
 
         val isActiveWorker get() = activeWorker.get() == this
 
@@ -510,12 +511,14 @@ internal class CacheEntry(
             incrementRefCount()
 
             try {
+                timing?.mark("worker_start offset=$offset")
                 logger.debug { "Resume caching for $this starting at $offset" }
 
                 val request = Request.Builder()
                     .url(uri.toString())
                     .cacheControl(CacheControl.FORCE_NETWORK)
                     .apply {
+                        timing?.let { tag(VideoBenchmark.Http::class.java, VideoBenchmark.Http(it, "cache")) }
                         if (offset > 0) {
                             header("Range", "bytes=$offset-")
                         }
@@ -625,11 +628,17 @@ internal class CacheEntry(
                         }
                     }
 
-                    var fullyWritten = false
-                    if (offset < totalSize) {
+                    val fullyWritten = if (readAll || offset < totalSize) {
                         logger.debug { "Writing response to cache file" }
-                        fullyWritten =
-                            bodyStream.use { writeResponseToEntry(bodyStream, totalSize) }
+                        bodyStream.use { writeResponseToEntry(bodyStream, totalSize) }
+                    } else {
+                        timing?.mark("cache_resume_complete offset=$offset size=$totalSize")
+                        // A resumed file may already be complete and have no response body.
+                        lock.withLock { state ->
+                            state.totalSizeValue = totalSize
+                            state.resultAvailable.signalAll()
+                        }
+                        offset == totalSize
                     }
 
                     logger.debug { "Body was fully written to cache file: $fullyWritten" }
@@ -638,9 +647,11 @@ internal class CacheEntry(
                         // check if we need can now promote the cached file to the target file
                         promoteFullyCached(totalSize)
                     }
+                    timing?.mark("worker_body_done complete=$fullyWritten size=$totalSize")
                 }
 
             } catch (err: Exception) {
+                timing?.mark("worker_error type=${err.javaClass.simpleName}")
                 logger.error { "Error in caching thread ($err)" }
                 lock.withLock { state ->
                     // caching failed, propagate the exception to the caller.
@@ -650,6 +661,7 @@ internal class CacheEntry(
 
             } finally {
                 cachingStopped()
+                timing?.mark("worker_stop")
             }
         }
 
@@ -662,11 +674,7 @@ internal class CacheEntry(
          * and then we just return.
          */
         private fun writeResponseToEntry(stream: InputStream, totalSize: Int): Boolean {
-            // Work at least for a second before giving up, if we're the only
-            // one holding a reference to the entry. This way we do not fill
-            // the cache of a file no one is reading from
-            val minWorkThreshold = Instant.now().plus(1, TimeUnit.SECONDS)
-
+            var firstChunk = true
             readStream(stream, bufferSize = 64 * 1024) { buffer, byteCount ->
                 lock.withLock { state ->
                     val fp = state.fp
@@ -676,6 +684,10 @@ internal class CacheEntry(
                     }
 
                     write(state, fp, buffer, byteCount)
+                    if (firstChunk) {
+                        firstChunk = false
+                        timing?.mark("cache_first_chunk bytes=$byteCount written=${state.written}")
+                    }
 
                     // publish the size to waiting consumers
                     // if the first read & write was successful. If an error would have occurred,
@@ -691,9 +703,8 @@ internal class CacheEntry(
                         return false
                     }
 
-                    // if this worker is the only one holding a reference to the
-                    // cache entry, and the timeout has expired, we stop caching
-                    if (refCount.toInt() == 1 && minWorkThreshold.isBefore(Instant.now())) {
+                    // Stop on the next chunk once no readers need this download.
+                    if (refCount.toInt() == 1 && state.written < totalSize) {
                         logger.debug { "Worker was abandoned, stopping cache now" }
                         return false
                     }

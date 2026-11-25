@@ -56,14 +56,14 @@ class NavigationProvider(
     private val iconBookmark by drawable(R.drawable.ic_action_bookmark)
     private val iconBookmarkTrending by drawable(R.drawable.ic_action_trending)
     private val iconCollections by drawable(R.drawable.ic_collection_yes)
-    private val iconFeedTypeBestOf by drawable(R.drawable.ic_action_bestof)
+    private val iconVideo by drawable(R.drawable.ic_type_video)
+    private val iconTopic by drawable(R.drawable.ic_action_add_tag)
     private val iconFeedTypeControversial by drawable(R.drawable.ic_action_controversial)
     private val iconFeedTypeNew by drawable(R.drawable.ic_action_new)
     private val iconFeedTypePremium by drawable(R.drawable.ic_action_follow_full)
     private val iconFeedTypePromoted by drawable(R.drawable.ic_action_promoted)
     private val iconFeedTypeRandom by drawable(R.drawable.ic_action_random)
     private val iconInbox by drawable(R.drawable.ic_action_email)
-    private val iconHighlights by drawable(R.drawable.ic_action_highlights)
     private val iconUpload by drawable(R.drawable.ic_action_upload)
     private val iconAgeVerify by drawable(R.drawable.ic_action_verify)
 
@@ -77,7 +77,6 @@ class NavigationProvider(
     private val iconLogin by drawable(R.drawable.ic_action_login)
     private val iconLogout by drawable(R.drawable.ic_action_logout)
     private val iconFeedTypeJunk by drawable(R.drawable.ic_action_bin)
-    private val iconFeedTypeBlussi by drawable(R.drawable.ic_plus)
 
     // set value to true to trigger a refresh of the flow once.
     private val refreshAfterNavItemWasDeletedStateFlow = MutableStateFlow(false)
@@ -99,10 +98,9 @@ class NavigationProvider(
 
                 combine(
                     currentSelection,
-                    inboxService.unreadMessagesCount(),
                     Settings.changes { customDefaultTags }.onStart { emit(Settings.customDefaultTags) },
-                ) { selection, counts, customTags ->
-                    categoryNavigationItems(selection, loginState.name, counts, customTags)
+                ) { selection, customTags ->
+                    categoryNavigationItems(selection, loginState.name, customTags)
                 },
 
                 remoteConfigItems(loginState, upper = false),
@@ -180,7 +178,6 @@ class NavigationProvider(
     private fun categoryNavigationItems(
         selection: FeedFilter?,
         username: String?,
-        unreadCounts: Api.InboxCounts,
         customTags: String?,
     ): List<NavigationItem> {
         fun makeItem(title: String, icon: Drawable, filter: FeedFilter, action: ActionType = ActionType.FILTER) =
@@ -204,7 +201,7 @@ class NavigationProvider(
 
         items += makeItem(
             title = "Pr0n",
-            icon = iconFeedTypeBestOf,
+            icon = iconVideo,
             filter = FeedFilter().withFeedType(FeedType.NEW)
                 .withTagsNoReset("! nsfw  webm -schwul -nsfl -trap -gay -wichteln -Ricardo Milos -bisschen Mod")
         )
@@ -223,15 +220,15 @@ class NavigationProvider(
         )
 
         items += makeItem(
-            title = getString(R.string.action_feed_type_bestof),
-            icon = iconFeedTypeBestOf,
-            filter = FeedFilter().withFeedType(FeedType.BESTOF)
+            title = "Ukraine",
+            icon = iconTopic,
+            filter = FeedFilter().withFeedType(FeedType.NEW).basicWithTags("ukraine")
         )
 
         items += makeItem(
-            title = getString(R.string.action_feed_type_bluss),
-            icon = iconFeedTypeBlussi,
-            filter = FeedFilter().withFeedType(FeedType.BLUSSI)
+            title = "Iran",
+            icon = iconTopic,
+            filter = FeedFilter().withFeedType(FeedType.NEW).basicWithTags("iran")
         )
 
         if (Settings.showCategoryJunk) {
@@ -276,16 +273,6 @@ class NavigationProvider(
                     .basicWithCollection(username, "**ANY", "**ANY")
             )
 
-            val config = configService.config()
-            if (config.showDigestsInInbox || (userService.userIsAdmin && config.showDigestsInInboxForAdmin)) {
-                items += NavigationItem(
-                    action = ActionType.HIGHLIGHTS,
-                    title = getString(R.string.inbox_type_digests),
-                    icon = iconHighlights,
-                    layout = R.layout.left_drawer_nav_item_inbox,
-                    unreadCount = unreadCounts,
-                )
-            }
         }
 
         return items
@@ -535,7 +522,7 @@ class NavigationProvider(
     }
 
     enum class ActionType {
-        HINT, FILTER, BOOKMARK, MESSAGES, UPLOAD, COLLECTIONS, HIGHLIGHTS, URI,
+        HINT, FILTER, BOOKMARK, MESSAGES, UPLOAD, COLLECTIONS, URI,
         DIVIDER,
         SETTINGS,
         CONTACT,

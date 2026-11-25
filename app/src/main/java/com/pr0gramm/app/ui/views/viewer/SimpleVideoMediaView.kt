@@ -53,6 +53,7 @@ import com.pr0gramm.app.services.ThemeHelper
 import com.pr0gramm.app.services.UriHelper
 import com.pr0gramm.app.ui.views.instance
 import com.pr0gramm.app.ui.views.viewer.video.InputStreamCacheDataSource
+import com.pr0gramm.app.util.VideoBenchmark
 import com.pr0gramm.app.util.addOnAttachListener
 import com.pr0gramm.app.util.addOnDetachListener
 import com.pr0gramm.app.util.di.injector
@@ -228,6 +229,10 @@ class SimpleVideoMediaView(config: Config) :
         )
     }
 
+    private var videoTiming: VideoBenchmark? = null
+    private var videoCacheEntry: Cache.Entry? = null
+    private var firstFrameLogged = false
+
     @OptIn(UnstableApi::class)
     private fun startVideo() {
         logger.info { "$effectiveUri, ${exo == null}, $isPlaying" }
@@ -235,41 +240,60 @@ class SimpleVideoMediaView(config: Config) :
             return
         }
 
+        val timing = VideoBenchmark(effectiveUri, "post=${config.mediaUri.id}")
+        videoTiming = timing
+        firstFrameLogged = false
+        timing.mark("player_start")
         showBusyIndicator()
 
         logger.info { "Starting exo for $effectiveUri" }
 
 
-        exo = ExoPlayerRecycler.get(context).apply {
-            setVideoTextureView(find(R.id.texture_view))
+        val player = ExoPlayerRecycler.get(context)
+        try {
+            player.apply {
+                timing.mark("player_created")
+                setVideoTextureView(find(R.id.texture_view))
 
-            repeatMode = Player.REPEAT_MODE_ONE
-            playWhenReady = !videoPauseState.value
-            volume = 0f
+                repeatMode = Player.REPEAT_MODE_ONE
+                playWhenReady = !videoPauseState.value
+                volume = 0f
 
-            trackSelectionParameters = TrackSelectionParameters.DEFAULT.buildUpon()
-                .setSelectUndeterminedTextLanguage(true)
-                .build()
+                trackSelectionParameters = TrackSelectionParameters.DEFAULT.buildUpon()
+                    .setSelectUndeterminedTextLanguage(true)
+                    .build()
 
-            // don't forget to remove listeners in stop()
-            addListener(playerListener)
+                // don't forget to remove listeners in stop()
+                addListener(playerListener)
 
-            val mediaSource = createMediaSource {
-                post {
-                    val ts = trackSelector ?: return@post
+                val mediaSource = createMediaSource(timing) {
+                    post {
+                        val ts = trackSelector ?: return@post
 
-                    val params = ts.parameters.buildUpon()
-                        .setTrackTypeDisabled(C.TRACK_TYPE_TEXT, true)
-                        .build()
+                        val params = ts.parameters.buildUpon()
+                            .setTrackTypeDisabled(C.TRACK_TYPE_TEXT, true)
+                            .build()
 
-                    ts.parameters = params
+                        ts.parameters = params
+                    }
                 }
+
+                setMediaSource(mediaSource, false)
+                timing.mark("prepare_start")
+                prepare()
+                timing.mark("prepare_return")
+
+                SeekController.restore(config.mediaUri.id, this)
             }
-
-            setMediaSource(mediaSource, false)
-            prepare()
-
-            SeekController.restore(config.mediaUri.id, this)
+            exo = player
+        } catch (err: Throwable) {
+            try {
+                player.release()
+            } finally {
+                releaseVideoCacheEntry(timing)
+                videoTiming = null
+            }
+            throw err
         }
 
         // apply volume to the exo player if needed.
@@ -280,10 +304,20 @@ class SimpleVideoMediaView(config: Config) :
     }
 
     @OptIn(UnstableApi::class)
-    private fun createMediaSource(disableSubtitle: () -> Unit): MediaSource {
+    private fun createMediaSource(timing: VideoBenchmark, disableSubtitle: () -> Unit): MediaSource {
+        val videoUri = effectiveUri
+        val cache = context.injector.instance<Cache>()
+        val httpClient = context.injector.instance<okhttp3.OkHttpClient>()
+        val videoEntry = if (videoUri.scheme == "https" || videoUri.scheme == "http") {
+            cache.get(videoUri).also {
+                videoCacheEntry = it
+                timing.mark("cache_entry_retained")
+            }
+        } else {
+            null
+        }
         val dataSourceFactory = DefaultDataSource.Factory(context) {
-            val cache = context.injector.instance<Cache>()
-            InputStreamCacheDataSource(cache)
+            InputStreamCacheDataSource(cache, httpClient, timing, videoUri, videoEntry)
         }
 
         // we could also go with a DefaultExtractorsFactory, but we already know the possible
@@ -315,7 +349,7 @@ class SimpleVideoMediaView(config: Config) :
             }
 
         val mediaItem = MediaItem.Builder()
-            .setUri(effectiveUri)
+            .setUri(videoUri)
             .setSubtitleConfigurations(subtitleConfigs.orEmpty())
             .build()
 
@@ -325,6 +359,7 @@ class SimpleVideoMediaView(config: Config) :
         val policy = object : DefaultLoadErrorHandlingPolicy() {
             override fun getRetryDelayMsFor(loadErrorInfo: LoadErrorHandlingPolicy.LoadErrorInfo): Long {
                 val isSubtitle = loadErrorInfo.loadEventInfo.uri.toString().endsWith(".vtt")
+                timing.mark("load_error subtitle=$isSubtitle count=${loadErrorInfo.errorCount} type=${loadErrorInfo.exception.javaClass.simpleName}")
                 if (isSubtitle) {
                     logger.warn { "Disable subtitles due to load error" }
 
@@ -347,6 +382,8 @@ class SimpleVideoMediaView(config: Config) :
 
     private fun stopVideo() {
         this.exo?.let { exo ->
+            val timing = videoTiming
+            timing?.mark("player_stop firstFrame=$firstFrameLogged")
             logger.info { "Stopping exo for $effectiveUri" }
 
             // store position so we can restore it later
@@ -359,20 +396,33 @@ class SimpleVideoMediaView(config: Config) :
             // reset the player now. No one else has access to it anymore.
             this.exo = null
 
-            if (Build.VERSION.SDK_INT != Build.VERSION_CODES.M) {
-                exo.stop()
-                exo.clearMediaItems()
+            try {
+                if (Build.VERSION.SDK_INT != Build.VERSION_CODES.M) {
+                    exo.stop()
+                    exo.clearMediaItems()
 
-                exo.removeListener(playerListener)
-                exo.setVideoTextureView(null)
+                    exo.removeListener(playerListener)
+                    exo.setVideoTextureView(null)
 
-                ExoPlayerRecycler.release(exo)
-            } else {
-                // on android 6 we just release the player, cause we got some crashes.
-                // So, maybe this helps.
-                exo.release()
+                    ExoPlayerRecycler.release(exo)
+                } else {
+                    // on android 6 we just release the player, cause we got some crashes.
+                    // So, maybe this helps.
+                    exo.release()
+                }
+                timing?.mark("player_released")
+            } finally {
+                releaseVideoCacheEntry(timing)
+                videoTiming = null
             }
         }
+    }
+
+    private fun releaseVideoCacheEntry(timing: VideoBenchmark?) {
+        val entry = videoCacheEntry ?: return
+        videoCacheEntry = null
+        entry.close()
+        timing?.mark("cache_entry_released")
     }
 
     override fun playMedia() {
@@ -471,6 +521,7 @@ class SimpleVideoMediaView(config: Config) :
     @OptIn(UnstableApi::class)
     private val playerListener = object : Player.Listener {
         override fun onPlaybackStateChanged(playbackState: Int) {
+            videoTiming?.mark("player_state state=$playbackState")
             showBusyIndicator(playbackState == Player.STATE_IDLE || playbackState == Player.STATE_BUFFERING)
         }
 
@@ -486,6 +537,11 @@ class SimpleVideoMediaView(config: Config) :
         }
 
         override fun onRenderedFirstFrame() {
+            if (!firstFrameLogged) {
+                firstFrameLogged = true
+                videoTiming?.mark("first_frame")
+            }
+            logger.info { "Rendered first video frame" }
             hideBusyIndicator()
             if (isPlaying) {
                 updateTimeline()

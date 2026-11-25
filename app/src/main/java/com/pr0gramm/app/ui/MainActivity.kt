@@ -373,6 +373,7 @@ class MainActivity : BaseAppCompatActivity("MainActivity"),
     override fun onBackStackChanged() {
         updateToolbarBackButton()
         updateActionbarTitle()
+        views.drawerLayout.feedSwipeEnabled = currentFragment is FeedFragment
 
         drawerFragment?.updateCurrentFilters(currentFeedFilter)
 
@@ -381,6 +382,24 @@ class MainActivity : BaseAppCompatActivity("MainActivity"),
                 supportFragmentManager.getBackStackEntryAt(it).name ?: "null"
             }
             "Stack: $stack"
+        }
+    }
+
+    override fun dump(
+        prefix: String,
+        fd: java.io.FileDescriptor?,
+        writer: java.io.PrintWriter,
+        args: Array<out String>?,
+    ) {
+        if (args?.contains("--video-threads") != true) {
+            super.dump(prefix, fd, writer, args)
+            return
+        }
+        val stacks = Thread.getAllStackTraces()
+        writer.println("${prefix}Video thread dump: ${stacks.size} JVM threads")
+        for ((thread, frames) in stacks.entries.sortedBy { it.key.name }) {
+            writer.println("${prefix}\"${thread.name}\" ${thread.state}")
+            for (frame in frames) writer.println("${prefix}  at $frame")
         }
     }
 
@@ -647,11 +666,6 @@ class MainActivity : BaseAppCompatActivity("MainActivity"),
     override fun onNavigateToCollections(username: String) {
         // move to new fragment
         moveToFragment(CollectionsFragment.newInstance(username), clear = true)
-        views.drawerLayout.closeDrawers()
-    }
-
-    override fun onNavigateToHighlights() {
-        moveToFragment(DigestsFragment(), clear = true)
         views.drawerLayout.closeDrawers()
     }
 

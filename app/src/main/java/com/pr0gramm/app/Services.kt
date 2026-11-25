@@ -114,6 +114,9 @@ fun appInjector(app: Application) = Module.build {
             .cookieJar(cookieJar)
             .connectionPool(ConnectionPool(8, 30, TimeUnit.SECONDS))
             .dns(CustomDNS(app))
+            .eventListenerFactory { call ->
+                call.request().tag(VideoBenchmark.Http::class.java) ?: okhttp3.EventListener.NONE
+            }
 
             .apply {
                 debugOnly {
@@ -126,7 +129,7 @@ fun appInjector(app: Application) = Module.build {
             }
 
             .addInterceptor(AgeVerificationInterceptor(cookieJar) { instance<Api>() })
-            .addInterceptor(UseSecondaryServerInterceptor())
+            .addInterceptor(MediaServerInterceptor())
 
             .addNetworkInterceptor(
                 DoNotCacheInterceptor(

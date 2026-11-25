@@ -3,6 +3,7 @@ package com.pr0gramm.app.api.pr0gramm
 import com.pr0gramm.app.Instant
 import com.pr0gramm.app.Logger
 import com.pr0gramm.app.isPr0MediaHost
+import com.pr0gramm.app.util.VideoBenchmark
 import com.pr0gramm.app.model.user.LoginCookie
 import okhttp3.Interceptor
 import okhttp3.Response
@@ -34,7 +35,11 @@ class AgeVerificationInterceptor(
             return chain.proceed(request)
         }
 
-        val token = currentToken() ?: return chain.proceed(request)
+        val timing = request.tag(VideoBenchmark.Http::class.java)
+        timing?.mark("age_token_start")
+        val token = currentToken()
+        timing?.mark("age_token_end")
+        if (token == null) return chain.proceed(request)
 
         return chain.proceed(request.newBuilder().header("Cookie", "av=$token").build())
     }

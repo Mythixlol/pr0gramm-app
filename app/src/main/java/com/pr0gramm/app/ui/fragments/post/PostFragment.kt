@@ -114,6 +114,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.distinctUntilChangedBy
@@ -295,10 +296,13 @@ class PostFragment : BaseFragment("PostFragment"), NewTagDialogFragment.OnAddNew
                 .map { state -> state.isAtLeast(Lifecycle.State.RESUMED) }
                 .distinctUntilChanged()
 
-            isActive.collect { active ->
+            isActive.collectLatest { active ->
                 trace { "${feedItem.id}.activeState($active): Switching viewer state" }
 
                 if (active) {
+                    if (feedItem.isVideo) {
+                        (parentFragment as? PostPagerFragment)?.isPagerIdle?.first { it }
+                    }
                     playMediaOnViewer()
                 } else {
                     stopMediaOnViewer()

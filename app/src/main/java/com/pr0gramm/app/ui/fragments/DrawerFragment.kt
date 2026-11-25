@@ -165,7 +165,6 @@ class DrawerFragment : BaseFragment("DrawerFragment", R.layout.left_drawer) {
          */
         fun onNavigateToCollections(username: String)
 
-        fun onNavigateToHighlights()
 
         fun hintBookmarksEditableWithPremium()
     }
@@ -351,7 +350,6 @@ private class NavigationDelegateAdapter(
 
         val unreadCount = when (value.action) {
             NavigationProvider.ActionType.MESSAGES -> value.unreadCount.inbox
-            NavigationProvider.ActionType.HIGHLIGHTS -> value.unreadCount.digests
             else -> 0
         }
 
@@ -382,9 +380,6 @@ private class NavigationDelegateAdapter(
                 showInboxActivity()
                 callback.onOtherNavigationItemClicked()
             }
-
-            NavigationProvider.ActionType.HIGHLIGHTS ->
-                callback.onNavigateToHighlights()
 
             NavigationProvider.ActionType.COLLECTIONS -> {
                 val username = item.filter?.username ?: return debugCrash()

@@ -37,6 +37,8 @@ import com.pr0gramm.app.ui.fragments.post.PostFragment
 import com.pr0gramm.app.ui.viewModels
 import com.pr0gramm.app.util.arguments
 import com.pr0gramm.app.util.observeChangeEx
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.asStateFlow
 
 /**
  */
@@ -60,6 +62,8 @@ class PostPagerFragment : BaseFragment("PostPagerFragment", R.layout.fragment_po
     private var previewInfo: PreviewInfo? = null
 
     private var latestActivePostFragment: PostFragment? = null
+    private val pagerIdle = MutableStateFlow(true)
+    internal val isPagerIdle = pagerIdle.asStateFlow()
 
     private var initialCommentRef: CommentRef? = null
 
@@ -96,23 +100,23 @@ class PostPagerFragment : BaseFragment("PostPagerFragment", R.layout.fragment_po
             }
         }
 
-        if (activity is ToolbarActivity) {
-            val activity = activity as ToolbarActivity
-            activity.scrollHideToolbarListener.reset()
+        val toolbarActivity = activity as? ToolbarActivity
+        toolbarActivity?.scrollHideToolbarListener?.reset()
+        pagerIdle.value = true
 
-            views.pager.addOnPageChangeListener(object : ViewPager.OnPageChangeListener {
-                override fun onPageScrollStateChanged(state: Int) {
-                    activity.scrollHideToolbarListener.reset()
-                    latestActivePostFragment?.exitFullscreen()
-                }
+        views.pager.addOnPageChangeListener(object : ViewPager.OnPageChangeListener {
+            override fun onPageScrollStateChanged(state: Int) {
+                pagerIdle.value = state == ViewPager.SCROLL_STATE_IDLE
+                toolbarActivity?.scrollHideToolbarListener?.reset()
+                latestActivePostFragment?.exitFullscreen()
+            }
 
-                override fun onPageSelected(position: Int) {
-                    activateFragmentAt(position)
-                }
+            override fun onPageSelected(position: Int) {
+                activateFragmentAt(position)
+            }
 
-                override fun onPageScrolled(position: Int, positionOffset: Float, positionOffsetPixels: Int) {}
-            })
-        }
+            override fun onPageScrolled(position: Int, positionOffset: Float, positionOffsetPixels: Int) {}
+        })
 
         if (Settings.fancyScrollHorizontal) {
             views.pager.setPageTransformer(false) { page: View, position: Float ->

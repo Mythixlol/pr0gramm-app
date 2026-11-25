@@ -82,7 +82,7 @@ out/
 
 # JIRA plugin
 atlassian-ide-plugin.xml
-
+add
 
 *.keystore
 
@@ -96,3 +96,5 @@ proguard-final.pro
 
 /sentry.properties
 design/
+
+.kotlin
